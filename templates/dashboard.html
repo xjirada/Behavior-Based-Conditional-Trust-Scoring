@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="box">
+  <h2>Dashboard</h2>
+
+  <p><strong>Current score:</strong> {{ score }}</p>
+
+  {% if prev_score is not none and last_delta is not none %}
+    <p>
+      <strong>Last action:</strong>
+      score {{ prev_score }} → {{ score }}
+      (delta {{ '%+d' % last_delta }})
+    </p>
+  {% else %}
+    <p><strong>Last action:</strong> no events yet.</p>
+  {% endif %}
+
+  <p><strong>Punishment / action suggested:</strong> {{ punishment }}</p>
+
+  <hr>
+
+  <form action="{{ url_for('test_input') }}" method="post">
+    <label>Input (simulated attack/payload string):</label><br>
+    <textarea name="test_input" rows="4"
+              placeholder="Type e.g. sqlmap or &lt;script&gt;alert(1)&lt;/script&gt;"></textarea><br><br>
+    <button type="submit">Send to SIEM (simulate)</button>
+  </form>
+
+  <hr>
+  <form action="{{ url_for('reset_score') }}" method="post" style="display:inline">
+    <button type="submit">Reset my score to 100 (demo)</button>
+  </form>
+
+  <form action="{{ url_for('reset_score_50') }}" method="post" style="display:inline; margin-left:10px;">
+    <button type="submit">Reset my score to 50 (demo)</button>
+  </form>
+</div>
+{% endblock %}

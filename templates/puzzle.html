@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="box">
+  <h2>Verification Puzzle</h2>
+  <p>For security reasons, you must solve this small puzzleto continue.</p>
+
+  <p>Compute: <strong>{{ question }}</strong></p>
+
+  <form method="post">
+    <input type="text" name="answer" autocomplete="off" required>
+    <button type="submit">Submit</button>
+  </form>
+
+  <p style="margin-top:10px;font-size:0.9em;">
+    Hint: Even if you think your first answer is correct, we might still say it's wrong 😈
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="box">
+  <h2>Register</h2>
+  <form method="post">
+    <label>Username<br><input name="username" required></label><br><br>
+    <label>Email (optional)<br><input name="email"></label><br><br>
+    <label>Password<br><input type="password" name="password" required></label><br><br>
+    <button type="submit">Register & bind device</button>
+  </form>
+</div>
+{% endblock %}

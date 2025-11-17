@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="box">
+  <h2>Recent Events (admin)</h2>
+  <table border="1" cellpadding="6" cellspacing="0">
+    <tr><th>ID</th><th>User</th><th>Input</th><th>Delta</th><th>Time</th></tr>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.id }}</td>
+        <td>{{ r.username }}</td>
+        <td style="max-width:400px;word-break:break-all">{{ r.raw_input }}</td>
+        <td>{{ r.delta }}</td>
+        <td>{{ r.created_at }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}
