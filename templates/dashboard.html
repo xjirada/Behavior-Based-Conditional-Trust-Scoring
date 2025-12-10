@@ -1,38 +1,78 @@
 {% extends "base.html" %}
 {% block body %}
 <div class="box">
-  <h2>Dashboard</h2>
+  <h2 style="margin-top:0;">Trust Dashboard</h2>
+  <p style="font-size:14px;color:#9ca3af;">
+    Demo conditional Zero Trust: perilaku kamu di-translate jadi trust score dinamis,
+    lalu diberi konsekuensi bertingkat (warn → CAPTCHA → delay → cooldown → freeze → ban).
+  </p>
 
-  <p><strong>Current score:</strong> {{ score }}</p>
+  <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;">
+    <div style="flex:1;min-width:220px;">
+      <h3>Current Trust</h3>
+      <div class="score-pill">
+        Score: <strong style="margin-left:6px;">{{ score }}</strong> / 100
+      </div>
+      <div class="score-pill">
+        Profile: {{ profile }}
+      </div>
+      <p style="margin-top:8px;font-size:14px;color:#d1d5db;">
+        Enforcement: <strong>{{ punishment }}</strong>
+      </p>
+    </div>
 
-  {% if prev_score is not none and last_delta is not none %}
-    <p>
-      <strong>Last action:</strong>
-      score {{ prev_score }} → {{ score }}
-      (delta {{ '%+d' % last_delta }})
-    </p>
-  {% else %}
-    <p><strong>Last action:</strong> no events yet.</p>
-  {% endif %}
+    <div style="flex:1;min-width:260px;">
+      <h3>Last Event</h3>
+      {% if last_delta is not none %}
+        <p style="font-size:14px;">
+          Previous score: {{ prev_score }} → {{ score }}
+          (<span>Δ {{ last_delta }}</span>)
+        </p>
+        <p style="font-size:13px;color:#9ca3af;">
+          Input: <code>{{ last_input }}</code>
+        </p>
+      {% else %}
+        <p style="font-size:14px;color:#9ca3af;">
+          Belum ada event untuk user ini.
+        </p>
+      {% endif %}
+    </div>
+  </div>
 
-  <p><strong>Punishment / action suggested:</strong> {{ punishment }}</p>
+  <hr style="margin:24px 0;border-color:#1f2937;">
+  <form method="post" action="{{ url_for('reset_score') }}" style="display:inline-block;margin-right:8px;">
+  <button type="submit">Reset score → 100</button>
+</form>
 
-  <hr>
+<form method="post" action="{{ url_for('reset_score_50') }}" style="display:inline-block;">
+  <button type="submit">Reset score → 50</button>
+</form>
 
-  <form action="{{ url_for('test_input') }}" method="post">
-    <label>Input (simulated attack/payload string):</label><br>
-    <textarea name="test_input" rows="4"
-              placeholder="Type e.g. sqlmap or &lt;script&gt;alert(1)&lt;/script&gt;"></textarea><br><br>
-    <button type="submit">Send to SIEM (simulate)</button>
+  <h3>Simulate SIEM / UEBA Event</h3>
+  <p style="font-size:13px;color:#9ca3af;">
+    Masukkan contoh payload / log line (mis. <code>sqlmap</code>, <code>&lt;script&gt;</code>, 
+    <code>login failed</code>, atau text normal). Sistem akan:
+    (1) analisis severity, (2) update trust score, dan (3) terapkan punishment.
+  </p>
+
+  <form method="post" action="{{ url_for('test_input') }}" style="margin-top:8px;">
+    <textarea name="test_input" rows="3" required></textarea>
+    <div style="margin-top:8px;">
+      <button type="submit">Submit event</button>
+    </div>
   </form>
 
-  <hr>
-  <form action="{{ url_for('reset_score') }}" method="post" style="display:inline">
-    <button type="submit">Reset my score to 100 (demo)</button>
-  </form>
+  <hr style="margin:24px 0;border-color:#1f2937;">
 
-  <form action="{{ url_for('reset_score_50') }}" method="post" style="display:inline; margin-left:10px;">
-    <button type="submit">Reset my score to 50 (demo)</button>
-  </form>
+  <h3>Punishment Ladder</h3>
+  <ul style="font-size:13px;color:#9ca3af;line-height:1.6;">
+    <li><strong>91–100</strong> — Trusted, no action.</li>
+    <li><strong>76–90</strong> — WARN: hanya warning + monitoring.</li>
+    <li><strong>61–75</strong> — CAPTCHA: puzzle/captcha sebelum aksi sensitif.</li>
+    <li><strong>46–60</strong> — DELAY: respon diperlambat (friction).</li>
+    <li><strong>31–45</strong> — COOLDOWN: beberapa endpoint dimatikan sementara.</li>
+    <li><strong>16–30</strong> — TEMP FREEZE: session di-freeze sementara.</li>
+    <li><strong>0–15</strong> — PERM BAN: rekomendasi ban permanen.</li>
+  </ul>
 </div>
 {% endblock %}
