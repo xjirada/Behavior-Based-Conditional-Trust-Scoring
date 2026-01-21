@@ -20,11 +20,6 @@ from trust_engine import (
     score_to_label,
 )
 
-
-# -------------------------
-# Paths and app init
-# -------------------------
-
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DB = os.path.join(DATA_DIR, "poc_zta.db")
@@ -37,11 +32,6 @@ app = Flask(__name__, template_folder="templates")
 app.secret_key = SECRET_KEY
 
 trust_engine = TrustEngine()
-
-# -------------------------
-# Database helpers
-# -------------------------
-
 
 def get_db():
     db = getattr(g, "_db", None)
@@ -70,13 +60,7 @@ def execute_db(query, args=()):
     cur = con.execute(query, args)
     con.commit()
     return cur.lastrowid
-
-
-# -------------------------
-# Init DB (if needed) + demo users
-# -------------------------
-
-
+    
 def init_db():
     # create tables from schema.sql
     with open(SCHEMA, "r") as f:
@@ -103,23 +87,15 @@ def init_db():
             )
     print("[INIT] DB initialized and demo users ensured")
 
-
-# -------------------------
-# Auth + helpers
-# -------------------------
-
-
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("login"))
 
-        # --- MIGRASI: buang flag cooldown lama kalau masih ada ---
         if session.get("cooldown"):
             session.pop("cooldown", None)
 
-        # --- cooldown berbasis waktu ---
         cooldown_until = session.get("cooldown_until")
         if cooldown_until and request.endpoint == "test_input":
             import time as _time
@@ -136,10 +112,9 @@ def login_required(f):
                 )
                 return redirect(url_for("dashboard"))
             else:
-                # cooldown selesai -> bersihkan flag
+              
                 session.pop("cooldown_until", None)
-
-        # --- puzzle challenge tetap jalan seperti biasa ---
+                
         if session.get("puzzle_required") and request.endpoint != "puzzle":
             return redirect(url_for("puzzle"))
 
@@ -162,11 +137,6 @@ def current_user():
 @app.before_request
 def load_user_and_inject():
     g.user = current_user()
-
-
-# -------------------------
-# Routes
-# -------------------------
 
 
 @app.route("/")
@@ -196,7 +166,7 @@ def register():
 
         pw_hash = generate_password_hash(password)
         device_id = str(uuid.uuid4())
-        # default score: netral cenderung baik
+    
         start_score = 80
 
         execute_db(
@@ -236,7 +206,7 @@ def login():
 
         resp = make_response(redirect(url_for("dashboard")))
 
-        # basic "save this device" simulation
+     
         if not cookie_device:
             resp.set_cookie(
                 "device_id",
@@ -267,7 +237,6 @@ def dashboard():
     profile = score_to_profile(score)
     punishment = score_to_label(score)
 
-    # ambil event terakhir user ini
     last = query_db(
         "SELECT delta, raw_input, created_at "
         "FROM events WHERE user_id = ? ORDER BY id DESC LIMIT 1",
@@ -304,16 +273,12 @@ def test_input():
     user = g.user
     text = request.form.get("test_input", "")
 
-    # kategori default: "app"
     category = "app"
 
-    # (optional) trik PoC:
-    # kalau user masukin prefix [social] di depan, anggap itu komentar sosial
     if text.lower().startswith("[social]"):
         category = "social"
         text = text[len("[social]") : ].strip()
 
-    # 1) SIEM / UEBA-like analysis
     severity, meta = analyze_request(
         raw_text=text,
         source_ip=request.remote_addr or "unknown",
@@ -322,12 +287,10 @@ def test_input():
         category=category,
     )
 
-    # 2) Trust engine
     current_score = user["score"]
     decision = trust_engine.apply(current_score, severity)
     new_score = decision.new_score
 
-    # 3) update DB (schema lama: cuma raw_input + delta)
     execute_db(
         "UPDATE users SET score = ? WHERE id = ?",
         (new_score, user["id"]),
@@ -337,13 +300,11 @@ def test_input():
         (user["id"], text, decision.delta),
     )
 
-    # 4) punishment ladder enforcement
     action = decision.action
 
-    # Kalau terdeteksi automation, sedikit “buff” punishment:
     tags = meta.get("tags", [])
     if "automation-tool" in tags or "automation-timing" in tags:
-        # kalau punishment masih rendah, naik minimal ke COOLDOWN
+
         if action.value < TrustAction.COOLDOWN.value:
             action = TrustAction.COOLDOWN
 
@@ -360,7 +321,7 @@ def test_input():
         return redirect(url_for("puzzle"))
 
     if action == TrustAction.COOLDOWN:
-        cooldown_seconds = 5  # bebas: 30 / 60 / 300 detik
+        cooldown_seconds = 5 
         session["cooldown_until"] = time.time() + cooldown_seconds
         flash(
             f"High suspicion: certain actions are temporarily disabled "
@@ -385,7 +346,7 @@ def test_input():
         )
         return redirect(url_for("login"))
 
-    # 5) transparansi ke user
+
     flash(
         f"[Trust decision] Severity={severity.name}, "
         f"Δscore={decision.delta:+d}, New score={new_score}, "
@@ -396,7 +357,6 @@ def test_input():
 
 
 
-# Reset current user's score to 100 (demo)
 @app.route("/reset_score", methods=["POST"])
 @login_required
 def reset_score():
@@ -413,7 +373,7 @@ def reset_score():
     return redirect(url_for("dashboard"))
 
 
-# Reset current user's score to 50 (demo)
+
 @app.route("/reset_score_50", methods=["POST"])
 @login_required
 def reset_score_50():
@@ -430,17 +390,13 @@ def reset_score_50():
     return redirect(url_for("dashboard"))
 
 
-# -------------------------
-# Puzzle challenge
-# -------------------------
-
 
 @app.route("/puzzle", methods=["GET", "POST"])
 @login_required
 def puzzle():
     import random
 
-    # generate puzzle kalau GET atau belum ada di session
+ 
     if request.method == "GET" or "puzzle_answer" not in session:
         a, b, c = random.randint(1, 9), random.randint(1, 9), random.randint(1, 9)
         question = f"{a} + {b} × {c}"
@@ -449,18 +405,18 @@ def puzzle():
         session["puzzle_answer"] = str(answer)
         return render_template("puzzle.html", question=question)
 
-    # POST: cek jawaban
+
     user_answer = (request.form.get("answer") or "").strip()
     real_answer = session.get("puzzle_answer")
     correct_once = session.get("puzzle_correct_once", False)
 
     if user_answer == real_answer:
         if not correct_once:
-            # first correct: pura-pura salah (biar ngeselin)
+      
             session["puzzle_correct_once"] = True
             flash("Incorrect answer, try again.", "danger")
         else:
-            # second correct: baru dilepas
+        
             session.pop("puzzle_required", None)
             session.pop("puzzle_correct_once", None)
             session.pop("puzzle_answer", None)
@@ -468,11 +424,11 @@ def puzzle():
             flash("Puzzle solved. You may continue.", "success")
             return redirect(url_for("dashboard"))
     else:
-        # salah beneran → progress di-reset
+    
         session["puzzle_correct_once"] = False
         flash("Incorrect answer, try again.", "danger")
 
-    # setiap attempt, generate puzzle baru (extra annoying)
+
     a, b, c = random.randint(1, 9), random.randint(1, 9), random.randint(1, 9)
     question = f"{a} + {b} × {c}"
     answer = a + b * c
@@ -480,10 +436,6 @@ def puzzle():
     session["puzzle_answer"] = str(answer)
     return render_template("puzzle.html", question=question)
 
-
-# -------------------------
-# Admin events
-# -------------------------
 
 
 @app.route("/admin/events")
@@ -505,12 +457,9 @@ def admin_events():
     return render_template("admin_events.html", rows=rows)
 
 
-# -------------------------
-# Boot / ensure db
-# -------------------------
 
 if __name__ == "__main__":
-    # coba query simple; kalau gagal, init DB
+ 
     try:
         with app.app_context():
             query_db("SELECT 1 FROM users LIMIT 1")
@@ -520,3 +469,4 @@ if __name__ == "__main__":
             init_db()
 
     app.run(debug=True, host="127.0.0.1", port=5000)
+
