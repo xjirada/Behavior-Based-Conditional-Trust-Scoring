@@ -1,4 +1,4 @@
-# trust_engine.py
+
 from enum import Enum, auto
 from dataclasses import dataclass
 
@@ -16,13 +16,13 @@ class Severity(Enum):
 
 
 class TrustAction(Enum):
-    NONE = auto()        # ga ada punishment
-    WARN = auto()        # cuma flash message
-    CAPTCHA = auto()     # puzzle/captcha
-    DELAY = auto()       # delay / friction
-    COOLDOWN = auto()    # sementara ga boleh akses endpoint "berat"
-    TEMP_FREEZE = auto() # soft lock session (logout + blokir sementara)
-    PERM_BAN = auto()    # permanent ban (belakangan, butuh flag di DB)
+    NONE = auto()       
+    WARN = auto()        
+    CAPTCHA = auto()     
+    DELAY = auto()      
+    COOLDOWN = auto() 
+    TEMP_FREEZE = auto()
+    PERM_BAN = auto()    
 
 
 @dataclass
@@ -32,17 +32,17 @@ class TrustDecision:
     delta: int
     severity: Severity
     action: TrustAction
-    label: str           # teks human readable (fairness + transparency)
+    label: str         
 
 
-# Mapping severity → delta (diambil dari konsep kamu: LOW/M/H/RISK)
+
 SEVERITY_DELTAS = {
-    Severity.SAFE: +1,       # reward kecil
+    Severity.SAFE: +1,      
     Severity.LOW: -2,
     Severity.MEDIUM: -5,
     Severity.HIGH: -10,
     Severity.CRITICAL: -20,
-    Severity.UNKNOWN: -7,    # "unsure but sus"
+    Severity.UNKNOWN: -7,    
 }
 
 
@@ -76,18 +76,18 @@ def score_to_action(score: int) -> TrustAction:
     Warn → CAPTCHA → friction/slowdown → cooldown → temp freeze → perm ban
     """
     if score >= 91:
-        return TrustAction.NONE                 # trusted
+        return TrustAction.NONE              
     if score >= 76:
-        return TrustAction.WARN                 # cuma warning
+        return TrustAction.WARN               
     if score >= 61:
-        return TrustAction.CAPTCHA              # butuh puzzle/captcha
+        return TrustAction.CAPTCHA              
     if score >= 46:
-        return TrustAction.DELAY                # friction delay
+        return TrustAction.DELAY             
     if score >= 31:
-        return TrustAction.COOLDOWN             # beberapa action dimatiin
+        return TrustAction.COOLDOWN            
     if score >= 16:
-        return TrustAction.TEMP_FREEZE          # soft lock session
-    return TrustAction.PERM_BAN                 # extreme case
+        return TrustAction.TEMP_FREEZE        
+    return TrustAction.PERM_BAN             
 
 
 def score_to_label(score: int) -> str:
@@ -129,3 +129,4 @@ class TrustEngine:
             action=action,
             label=label,
         )
+
